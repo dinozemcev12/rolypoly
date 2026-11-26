@@ -2,37 +2,62 @@ import { useEffect, useState } from "react";
 import api from "@/api/api";
 import { useGameStore } from "@/store/useGameStore";
 import { useAuthStore } from "@/store/useAuthStore";
-import { Wallet, Plus, TrendingUp, TrendingDown } from "lucide-react";
+import { Wallet, Plus, TrendingUp, TrendingDown, Hammer, CheckCircle2 } from "lucide-react";
 import type { Country } from "@/types";
 import type { Transaction } from "@/types";
 
+interface ProjectItem {
+  id: number;
+  game_id: number;
+  country_id: number;
+  name: string;
+  description?: string;
+  cost: number;
+  status: string;
+  created_at: string;
+}
+
 export default function EconomyPage() {
-  const { countries, transactions, setTransactions } = useGameStore();
+  const { currentGame, countries, transactions, setCurrentGame, setCountries, setTransactions } = useGameStore();
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [newTx, setNewTx] = useState<{ country_id: number; amount: number; type: "income" | "expense" | "adjustment"; reason: string; date: string }>({
     country_id: 0, amount: 0, type: "income", reason: "", date: new Date().toISOString().slice(0, 16),
   });
+  const [projects, setProjects] = useState<ProjectItem[]>([]);
+  const [projName, setProjName] = useState("");
+  const [projDesc, setProjDesc] = useState("");
+  const [projCost, setProjCost] = useState(100);
+  const [projCountryId, setProjCountryId] = useState(0);
   const isGM = user?.role === "gm" || user?.role === "admin";
 
   useEffect(() => {
     load();
-  }, []);
+  }, [currentGame?.id]);
 
   const load = async () => {
     try {
       const gRes = await api.get("/games/");
       const games = gRes.data;
       if (!games.length) { setLoading(false); return; }
-      const game = games[0];
+      const game = currentGame ? games.find((g: any) => g.id === currentGame.id) || games[0] : games[0];
+      if (!currentGame) setCurrentGame(game);
       const cRes = await api.get(`/countries/games/${game.id}`);
       const cs = cRes.data;
-      // setCountries(cs) handled elsewhere
-      const tRes = await api.get(`/transactions/games/${game.id}`);
+      setCountries(cs);
+      const [tRes, pRes] = await Promise.all([
+        api.get(`/transactions/games/${game.id}`),
+        api.get(`/projects/games/${game.id}`).catch(() => ({ data: [] })),
+      ]);
       setTransactions(tRes.data);
-      if (cs.length && user && isGM) {
-        setNewTx((s) => ({ ...s, country_id: cs[0].id }));
+      setProjects(pRes.data || []);
+      if (cs.length && user) {
+        const own = (cs as Country[]).find((c) => c.owner_user_id === user.id);
+        if (isGM) {
+          setNewTx((s) => ({ ...s, country_id: s.country_id || cs[0].id }));
+        }
+        setProjCountryId((prev) => prev || own?.id || cs[0].id);
       }
     } catch (e: any) {
       setError("Не удалось загрузить экономику");
@@ -50,6 +75,36 @@ export default function EconomyPage() {
       load();
     } catch (err: any) {
       setError(err.response?.data?.detail || "Ошибка операции");
+    }
+  };
+
+  const handleCreateProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!projCountryId || !projName.trim()) return;
+    setError("");
+    try {
+      await api.post("/projects/", {
+        country_id: projCountryId,
+        name: projName.trim(),
+        description: projDesc.trim() || undefined,
+        cost: projCost,
+        status: "planned",
+      });
+      setProjName("");
+      setProjDesc("");
+      setProjCost(100);
+      load();
+    } catch (err: any) {
+      setError(err.response?.data?.detail || "Не удалось создать проект");
+    }
+  };
+
+  const handleProjectStatus = async (projectId: number, status: string) => {
+    try {
+      await api.patch(`/projects/${projectId}`, { status });
+      load();
+    } catch (err: any) {
+      setError(err.response?.data?.detail || "Не удалось обновить проект");
     }
   };
 
@@ -178,6 +233,105 @@ export default function EconomyPage() {
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Экономические проекты */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {(isGM || ownCountry) && (
+          <div className="panel p-5 space-y-3">
+            <h3 className="text-sm font-semibold text-accent flex items-center gap-2">
+              <Hammer className="w-4 h-4" /> Новый экономический проект
+            </h3>
+            <form onSubmit={handleCreateProject} className="space-y-3">
+              {isGM && (
+                <select
+                  className="input text-xs"
+                  value={projCountryId}
+                  onChange={(e) => setProjCountryId(Number(e.target.value))}
+                >
+                  {(countries as Country[]).map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              )}
+              <input
+                className="input"
+                placeholder="Название проекта (напр. Модернизация порта)"
+                value={projName}
+                onChange={(e) => setProjName(e.target.value)}
+                required
+              />
+              <textarea
+                className="input min-h-[60px]"
+                placeholder="Описание и ожидаемый эффект..."
+                value={projDesc}
+                onChange={(e) => setProjDesc(e.target.value)}
+              />
+              <div className="space-y-1">
+                <label className="text-xs text-text-main/70">Стоимость</label>
+                <input
+                  type="number"
+                  min={0}
+                  className="input"
+                  value={projCost}
+                  onChange={(e) => setProjCost(Number(e.target.value))}
+                />
+              </div>
+              <button type="submit" className="btn-primary w-full text-xs">
+                Создать проект
+              </button>
+            </form>
+          </div>
+        )}
+
+        <div className="panel p-5 lg:col-span-2 space-y-3">
+          <h3 className="text-sm font-semibold text-text-main">Экономические проекты ({projects.length})</h3>
+          {projects.length === 0 ? (
+            <div className="text-xs text-text-main/50">Проектов пока нет.</div>
+          ) : (
+            <div className="space-y-2">
+              {projects.map((p) => {
+                const cName = (countries as Country[]).find((c) => c.id === p.country_id)?.name || `#${p.country_id}`;
+                return (
+                  <div key={p.id} className="panel-2 p-3 flex flex-col md:flex-row md:items-center justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-text-main">{p.name}</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded border border-[#2a3b52] text-text-main/70">
+                          {p.status}
+                        </span>
+                      </div>
+                      <div className="text-xs text-text-main/50">
+                        {cName} • Стоимость: {p.cost.toLocaleString("ru-RU")}
+                      </div>
+                      {p.description && <div className="text-xs text-text-main/70 mt-1">{p.description}</div>}
+                    </div>
+                    {isGM && (
+                      <div className="flex gap-1.5">
+                        {p.status === "planned" && (
+                          <button
+                            onClick={() => handleProjectStatus(p.id, "active")}
+                            className="btn-ghost text-xs py-1 text-accent"
+                          >
+                            Запустить
+                          </button>
+                        )}
+                        {p.status !== "completed" && (
+                          <button
+                            onClick={() => handleProjectStatus(p.id, "completed")}
+                            className="btn-ghost text-xs py-1 text-success flex items-center gap-1"
+                          >
+                            <CheckCircle2 className="w-3 h-3" /> Завершить
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>

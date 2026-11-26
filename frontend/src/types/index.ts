@@ -132,7 +132,7 @@ export interface HistoryLog {
   related_object_type?: string;
   related_object_id?: number;
   turn_number?: number;
-  metadata?: Record<string, any>;
+  log_metadata?: Record<string, any>;
   created_at: string;
 }
 

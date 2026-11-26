@@ -7,6 +7,7 @@ export default function Register() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<"player" | "gm">("player");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -16,7 +17,7 @@ export default function Register() {
     setError("");
     setLoading(true);
     try {
-      await api.post("/auth/register", { username, email, password, role: "player" });
+      await api.post("/auth/register", { username, email, password, role });
       navigate("/login");
     } catch (err: any) {
       setError(err.response?.data?.detail || "Ошибка регистрации");
@@ -79,6 +80,17 @@ export default function Register() {
                 required
               />
             </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs text-text-main/70">Роль</label>
+            <select
+              className="input"
+              value={role}
+              onChange={(e) => setRole(e.target.value as "player" | "gm")}
+            >
+              <option value="player">Игрок</option>
+              <option value="gm">Ведущий (GM)</option>
+            </select>
           </div>
           <button type="submit" disabled={loading} className="btn-primary w-full">
             {loading ? "Создание..." : "Создать аккаунт"}

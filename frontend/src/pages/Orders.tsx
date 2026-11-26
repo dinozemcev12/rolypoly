@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import api from "@/api/api";
 import { useGameStore } from "@/store/useGameStore";
 import { useAuthStore } from "@/store/useAuthStore";
-import { Send, Edit2, CheckCircle2, XCircle, Clock, Loader2 } from "lucide-react";
+import { Send, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import type { Order } from "@/types";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -16,7 +16,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function OrdersPage() {
-  const { orders, setOrders } = useGameStore();
+  const { currentGame, countries, orders, setCurrentGame, setCountries, setOrders } = useGameStore();
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [newOrder, setNewOrder] = useState<{ title: string; category: string; description: string; country_id: number }>({
@@ -26,24 +26,30 @@ export default function OrdersPage() {
 
   useEffect(() => {
     load();
-  }, []);
+  }, [currentGame?.id]);
 
   const load = async () => {
     try {
       const res = await api.get("/games/");
       const games = res.data;
       if (!games.length) { setLoading(false); return; }
-      const game = games[0];
-      const oRes = await api.get(`/orders/games/${game.id}`);
+      const game = currentGame ? games.find((g: any) => g.id === currentGame.id) || games[0] : games[0];
+      if (!currentGame) setCurrentGame(game);
+      const [oRes, cRes] = await Promise.all([
+        api.get(`/orders/games/${game.id}`),
+        countries.length > 0 ? Promise.resolve({ data: countries }) : api.get(`/countries/games/${game.id}`),
+      ]);
       setOrders(oRes.data);
-      // загрузим страны для выбора
-      const cRes = await api.get(`/countries/games/${game.id}`);
-      const countries = cRes.data;
-      if (countries.length && user) {
-        const own = countries.find((c: any) => c.owner_user_id === user.id);
-        if (own) setNewOrder((s) => ({ ...s, country_id: own.id }));
+      if (countries.length === 0) setCountries(cRes.data);
+      const cs = cRes.data as any[];
+      if (cs.length && user) {
+        const own = cs.find((c: any) => c.owner_user_id === user.id);
+        const targetCountryId = own ? own.id : isGM ? cs[0].id : 0;
+        if (targetCountryId) {
+          setNewOrder((s) => ({ ...s, country_id: s.country_id || targetCountryId }));
+        }
       }
-    } catch (e: any) {
+    } catch {
       setError("Не удалось загрузить приказы");
     } finally {
       setLoading(false);
@@ -102,6 +108,20 @@ export default function OrdersPage() {
         <div className="panel p-5">
           <h3 className="text-sm font-semibold text-accent mb-4">Новый приказ</h3>
           <form onSubmit={handleSubmit} className="space-y-3">
+            {isGM && countries.length > 0 && (
+              <div className="space-y-2">
+                <label className="text-xs text-text-main/70">Государство</label>
+                <select
+                  className="input"
+                  value={newOrder.country_id}
+                  onChange={(e) => setNewOrder({ ...newOrder, country_id: Number(e.target.value) })}
+                >
+                  {countries.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="space-y-2">
               <label className="text-xs text-text-main/70">Название</label>
               <input

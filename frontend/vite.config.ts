@@ -13,6 +13,20 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/api": "http://localhost:8000",
+      "/uploads": "http://localhost:8000",
+    },
+  },
+  build: {
+    chunkSizeWarningLimit: 2000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "vendor-react": ["react", "react-dom", "react-router-dom"],
+          "vendor-map": ["maplibre-gl"],
+          "vendor-geo": ["@turf/turf", "topojson-client"],
+          "vendor-ui": ["lucide-react", "zustand"],
+        },
+      },
     },
   },
 });

@@ -1,23 +1,27 @@
 import { useEffect, useState } from "react";
 import api from "@/api/api";
+import { useGameStore } from "@/store/useGameStore";
 import { History } from "lucide-react";
 import type { HistoryLog } from "@/types";
 
 export default function HistoryPage() {
+  const { currentGame, setCurrentGame } = useGameStore();
   const [logs, setLogs] = useState<HistoryLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
 
   useEffect(() => {
     load();
-  }, []);
+  }, [currentGame?.id]);
 
   const load = async () => {
     try {
       const res = await api.get("/games/");
       const games = res.data;
       if (!games.length) { setLoading(false); return; }
-      const hRes = await api.get(`/history/games/${games[0].id}`);
+      const game = currentGame ? games.find((g: any) => g.id === currentGame.id) || games[0] : games[0];
+      if (!currentGame) setCurrentGame(game);
+      const hRes = await api.get(`/history/games/${game.id}`);
       setLogs(hRes.data);
     } catch (e) {
       // ignore
@@ -58,9 +62,9 @@ export default function HistoryPage() {
             </thead>
             <tbody className="divide-y divide-[#1f2d3f]">
               {loading ? (
-                <tr><td colSpan="5" className="px-4 py-6 text-center text-text-main/50">Загрузка...</td></tr>
+                <tr><td colSpan={5} className="px-4 py-6 text-center text-text-main/50">Загрузка...</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan="5" className="px-4 py-6 text-center text-text-main/50">Записей нет</td></tr>
+                <tr><td colSpan={5} className="px-4 py-6 text-center text-text-main/50">Записей нет</td></tr>
               ) : (
                 filtered.map((l) => (
                   <tr key={l.id} className="hover:bg-[#1a2436]/40 transition-colors">

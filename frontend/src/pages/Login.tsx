@@ -12,20 +12,33 @@ export default function Login() {
   const navigate = useNavigate();
   const { setAuth } = useAuthStore();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const doLogin = async (loginValue: string, passValue: string) => {
     setError("");
     setLoading(true);
     try {
-      const res = await api.post("/auth/login", { username: email, password });
-      const { access_token, user } = res.data;
-      setAuth(access_token, user);
+      const form = new URLSearchParams();
+      form.append("username", loginValue);
+      form.append("password", passValue);
+
+      const res = await api.post("/auth/login", form, {
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      });
+      const { access_token } = res.data;
+      const meRes = await api.get("/auth/me", {
+        headers: { Authorization: `Bearer ${access_token}` },
+      });
+      setAuth(access_token, meRes.data);
       navigate("/");
     } catch (err: any) {
       setError(err.response?.data?.detail || "Ошибка входа");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await doLogin(email, password);
   };
 
   return (
@@ -45,13 +58,13 @@ export default function Login() {
         )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label className="text-xs text-text-main/70">Email</label>
+            <label className="text-xs text-text-main/70">Email или логин</label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-main/40" />
               <input
-                type="email"
+                type="text"
                 className="input pl-9"
-                placeholder="you@example.com"
+                placeholder="gm@rolypoly.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -80,7 +93,36 @@ export default function Login() {
             {loading ? "Вход..." : "Войти"}
           </button>
         </form>
-        <p className="mt-6 text-xs text-text-main/50 text-center">
+        <div className="mt-5 pt-4 border-t border-[#2a3b52]">
+          <div className="text-xs text-text-main/50 mb-2 text-center">Быстрый вход (демо, пароль: secret123):</div>
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => doLogin("gm@rolypoly.com", "secret123")}
+              disabled={loading}
+              className="btn-ghost text-xs py-1.5"
+            >
+              Ведущий
+            </button>
+            <button
+              type="button"
+              onClick={() => doLogin("p1@rolypoly.com", "secret123")}
+              disabled={loading}
+              className="btn-ghost text-xs py-1.5"
+            >
+              Игрок 1
+            </button>
+            <button
+              type="button"
+              onClick={() => doLogin("p2@rolypoly.com", "secret123")}
+              disabled={loading}
+              className="btn-ghost text-xs py-1.5"
+            >
+              Игрок 2
+            </button>
+          </div>
+        </div>
+        <p className="mt-4 text-xs text-text-main/50 text-center">
           Нет аккаунта?{" "}
           <a href="/register" className="text-accent hover:underline">
             Зарегистрироваться

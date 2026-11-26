@@ -8,8 +8,12 @@ import MapPage from "@/pages/Map";
 import CountriesPage from "@/pages/Countries";
 import OrdersPage from "@/pages/Orders";
 import EconomyPage from "@/pages/Economy";
+import DiplomacyPage from "@/pages/Diplomacy";
+import ConflictsPage from "@/pages/Conflicts";
+import NewsPage from "@/pages/News";
 import HistoryPage from "@/pages/History";
 import GMPanel from "@/pages/GMPanel";
+import ProfilePage from "@/pages/Profile";
 
 const AuthGuard = ({ children }: { children: any }) => {
   const { isAuthenticated } = useAuthStore();
@@ -23,14 +27,18 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route element={<AuthGuard><MainLayout /></AuthGuard>}>
-          <Route index element={<Navigate to="/map" replace />} />
+          <Route index element={<GameDashboard />} />
           <Route path="map" element={<MapPage />} />
           <Route path="countries" element={<CountriesPage />} />
           <Route path="orders" element={<OrdersPage />} />
           <Route path="economy" element={<EconomyPage />} />
+          <Route path="diplomacy" element={<DiplomacyPage />} />
+          <Route path="conflicts" element={<ConflictsPage />} />
+          <Route path="news" element={<NewsPage />} />
           <Route path="history" element={<HistoryPage />} />
           <Route path="gm-panel" element={<GMPanel />} />
-          <Route path="*" element={<Navigate to="/map" replace />} />
+          <Route path="profile" element={<ProfilePage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
     </BrowserRouter>

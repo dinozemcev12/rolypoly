@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { Game, Country, Territory, Order, Transaction, GameTurn, Notification } from "@/types";
 
 interface GameState {
+  games: Game[];
   currentGame: Game | null;
   countries: Country[];
   territories: Territory[];
@@ -11,6 +12,7 @@ interface GameState {
   notifications: Notification[];
   selectedTerritory: Territory | null;
   selectedCountry: Country | null;
+  setGames: (games: Game[]) => void;
   setCurrentGame: (game: Game | null) => void;
   setCountries: (countries: Country[]) => void;
   setTerritories: (territories: Territory[]) => void;
@@ -25,6 +27,7 @@ interface GameState {
 }
 
 export const useGameStore = create<GameState>((set) => ({
+  games: [],
   currentGame: null,
   countries: [],
   territories: [],
@@ -34,6 +37,7 @@ export const useGameStore = create<GameState>((set) => ({
   notifications: [],
   selectedTerritory: null,
   selectedCountry: null,
+  setGames: (games) => set({ games }),
   setCurrentGame: (g) => set({ currentGame: g }),
   setCountries: (c) => set({ countries: c }),
   setTerritories: (t) => set({ territories: t }),
