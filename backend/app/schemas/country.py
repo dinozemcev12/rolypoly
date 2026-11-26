@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
@@ -46,10 +46,9 @@ class CountryUpdate(BaseModel):
 
 
 class CountryRead(CountryBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     game_id: int
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True

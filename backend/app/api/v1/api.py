@@ -12,6 +12,11 @@ from app.api.v1.endpoints import (
     history,
     events,
     notifications,
+    diplomacy,
+    conflicts,
+    uploads,
+    projects,
+    messages,
 )
 
 api_router = APIRouter()
@@ -27,3 +32,8 @@ api_router.include_router(turns.router, prefix="/turns", tags=["turns"])
 api_router.include_router(history.router, prefix="/history", tags=["history"])
 api_router.include_router(events.router, prefix="/events", tags=["events"])
 api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
+api_router.include_router(diplomacy.router, prefix="/diplomacy", tags=["diplomacy"])
+api_router.include_router(conflicts.router, prefix="/conflicts", tags=["conflicts"])
+api_router.include_router(uploads.router, prefix="/uploads", tags=["uploads"])
+api_router.include_router(projects.router, prefix="/projects", tags=["projects"])
+api_router.include_router(messages.router, prefix="/messages", tags=["messages"])

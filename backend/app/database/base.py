@@ -7,7 +7,7 @@ from app.database.session import Base
 class BaseModel:
     """Базовые поля для всех моделей: id, created_at, updated_at."""
 
-    id: int
+    __allow_unmapped__ = True
 
     @declared_attr
     def __tablename__(cls) -> str:

@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -115,21 +115,33 @@ def delete_game(
 @router.post("/{game_id}/members", response_model=GameMemberRead, status_code=status.HTTP_201_CREATED)
 def add_member(
     game_id: int,
-    user_id: int,
+    user_id: Optional[int] = None,
+    username: Optional[str] = None,
     role_in_game: str = "player",
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Пригласить игрока в игру (ведущий)."""
+    """Пригласить игрока в игру по user_id или username (ведущий)."""
     check_game_gm_access(db, game_id, current_user)
     game = get_game_or_404(db, game_id)
     from app.models.user import User as UserModel
-    user = db.query(UserModel).filter(UserModel.id == user_id).first()
+    if user_id is not None:
+        user = db.query(UserModel).filter(UserModel.id == user_id).first()
+    elif username is not None:
+        user = db.query(UserModel).filter(UserModel.username == username).first()
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Необходимо указать user_id или username",
+        )
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Пользователь не найден",
+        )
     existing = (
         db.query(GameMember)
-        .filter(GameMember.game_id == game_id, GameMember.user_id == user_id)
+        .filter(GameMember.game_id == game_id, GameMember.user_id == user.id)
         .first()
     )
     if existing:
@@ -137,12 +149,22 @@ def add_member(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Пользователь уже в игре"
         )
     member = GameMember(
-        game_id=game_id, user_id=user_id, role_in_game=role_in_game, is_active=True
+        game_id=game_id, user_id=user.id, role_in_game=role_in_game, is_active=True
     )
     db.add(member)
     db.commit()
     db.refresh(member)
-    return member
+    # Собираем ответ с данными пользователя
+    return {
+        "id": member.id,
+        "game_id": member.game_id,
+        "user_id": member.user_id,
+        "username": user.username,
+        "email": user.email,
+        "role_in_game": member.role_in_game,
+        "is_active": member.is_active,
+        "joined_at": member.joined_at,
+    }
 
 
 @router.get("/{game_id}/members", response_model=List[GameMemberRead])
@@ -152,11 +174,25 @@ def list_members(
     current_user: User = Depends(get_current_user),
 ):
     check_game_access(db, game_id, current_user)
-    return (
+    members = (
         db.query(GameMember)
         .filter(GameMember.game_id == game_id)
         .all()
     )
+    result = []
+    for m in members:
+        u = db.query(User).filter(User.id == m.user_id).first()
+        result.append({
+            "id": m.id,
+            "game_id": m.game_id,
+            "user_id": m.user_id,
+            "username": u.username if u else str(m.user_id),
+            "email": u.email if u else "",
+            "role_in_game": m.role_in_game,
+            "is_active": m.is_active,
+            "joined_at": m.joined_at,
+        })
+    return result
 
 
 @router.delete("/{game_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -5,6 +5,7 @@ from sqlalchemy import (
     DateTime,
     String,
     CheckConstraint,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
 

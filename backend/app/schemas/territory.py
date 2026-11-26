@@ -1,6 +1,8 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from typing import Optional, Dict, Any, List
 from datetime import datetime
+
+from app.services.geojson_service import geometry_to_geojson
 
 
 class TerritoryBase(BaseModel):
@@ -16,7 +18,7 @@ class TerritoryBase(BaseModel):
 
 
 class TerritoryCreate(TerritoryBase):
-    pass
+    game_id: int
 
 
 class TerritoryUpdate(BaseModel):
@@ -32,14 +34,29 @@ class TerritoryUpdate(BaseModel):
 
 
 class TerritoryRead(TerritoryBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     game_id: int
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    @field_validator("geometry", mode="before")
+    @classmethod
+    def serialize_geometry(cls, v: Any) -> Optional[Dict[str, Any]]:
+        return geometry_to_geojson(v)
 
 
 class TerritoryOwnerAssign(BaseModel):
-    country_id: int
+    country_id: Optional[int] = None
+
+
+class GeoJSONImportRequest(BaseModel):
+    geojson: Dict[str, Any]
+    default_country_id: Optional[int] = None
+    replace_existing: bool = False
+
+
+class GeoJSONImportResponse(BaseModel):
+    imported_count: int
+    territories: List[TerritoryRead]

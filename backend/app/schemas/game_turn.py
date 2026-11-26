@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 from datetime import datetime
 
@@ -10,6 +10,8 @@ class GameTurnBase(BaseModel):
 
 
 class GameTurnRead(GameTurnBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     game_id: int
     started_at: Optional[datetime] = None
@@ -18,9 +20,6 @@ class GameTurnRead(GameTurnBase):
     completed_by_user_id: Optional[int] = None
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class GameTurnAction(BaseModel):

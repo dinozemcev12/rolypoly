@@ -56,6 +56,8 @@ class Country(BaseModel, Base):
     territories = relationship(
         "Territory", back_populates="country", foreign_keys="Territory.country_id"
     )
+    orders = relationship("Order", back_populates="country", cascade="all, delete-orphan")
+    transactions = relationship("Transaction", back_populates="country", cascade="all, delete-orphan")
 
     __table_args__ = (
         CheckConstraint("inflation >= 0", name="ck_country_inflation_nonneg"),

@@ -12,7 +12,11 @@ from sqlalchemy.orm import relationship
 from geoalchemy2 import Geometry
 
 from app.database.base import BaseModel
-from app.database.session import Base
+from app.database.session import Base, SQLALCHEMY_DATABASE_URL
+
+_geometry_col_type = (
+    JSON if SQLALCHEMY_DATABASE_URL.startswith("sqlite") else Geometry("MULTIPOLYGON", srid=4326)
+)
 
 
 class Territory(BaseModel, Base):
@@ -31,7 +35,7 @@ class Territory(BaseModel, Base):
         index=True,
     )  # владелец территории (государство)
     name = Column(String(200), nullable=False, index=True)
-    geometry = Column(Geometry("MULTIPOLYGON", srid=4326), nullable=True)
+    geometry = Column(_geometry_col_type, nullable=True)
     # Для произвольных карт: нормализованные координаты 0..1relative к изображению
     bounds_normalized = Column(JSON, nullable=True)
 

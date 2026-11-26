@@ -7,7 +7,10 @@ from app.database.session import get_db
 from app.api.deps import get_current_user, check_game_access, check_game_gm_access, get_game_or_404
 from app.models.order import Order
 from app.models.country import Country
+from app.models.user import User
+from app.models.notification import Notification
 from app.schemas.order import OrderCreate, OrderRead, OrderUpdate, OrderDecision
+from app.services.history_service import log_history
 
 router = APIRouter()
 
@@ -112,7 +115,7 @@ def send_order(
     order = db.query(Order).filter(Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Приказ не найден")
-    check_game_access(db, order.game_id, current_user)
+    game = check_game_access(db, order.game_id, current_user)
     if order.sender_user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Это не ваш приказ")
     if order.status != "draft":
@@ -120,6 +123,16 @@ def send_order(
     order.status = "sent"
     order.sent_at = datetime.now(timezone.utc)
     db.add(order)
+    log_history(
+        db,
+        game_id=order.game_id,
+        user_id=current_user.id,
+        action_type="order_sent",
+        description=f"Отправлен приказ «{order.title}»",
+        related_object_type="order",
+        related_object_id=order.id,
+        turn_number=game.current_turn_number,
+    )
     db.commit()
     db.refresh(order)
     return order
@@ -136,7 +149,7 @@ def order_decision(
     order = db.query(Order).filter(Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Приказ не найден")
-    check_game_gm_access(db, order.game_id, current_user)
+    game = check_game_gm_access(db, order.game_id, current_user)
     valid_statuses = ("accepted", "rejected", "executed", "cancelled")
     if decision.status not in valid_statuses:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Недопустимый статус")
@@ -146,6 +159,27 @@ def order_decision(
     order.gm_decision_at = datetime.now(timezone.utc)
     order.decided_by_user_id = current_user.id
     db.add(order)
+    log_history(
+        db,
+        game_id=order.game_id,
+        user_id=current_user.id,
+        action_type=f"order_{decision.status}",
+        description=f"Решение по приказу «{order.title}»: {decision.status}",
+        related_object_type="order",
+        related_object_id=order.id,
+        turn_number=game.current_turn_number,
+    )
+    if order.sender_user_id:
+        db.add(
+            Notification(
+                game_id=order.game_id,
+                user_id=order.sender_user_id,
+                title=f"Приказ «{order.title}»: {decision.status}",
+                text=decision.gm_comment or f"Статус приказа изменён на {decision.status}",
+                type="order",
+                link_url="/orders",
+            )
+        )
     db.commit()
     db.refresh(order)
     return order

@@ -80,3 +80,10 @@ $RECYCLE.BIN/
 # Logs
 logs/
 *.log
+
+# Local dev DB, uploads, cache
+*.db
+*.sqlite3
+backend/uploads/
+backend/data/
+.npm-cache/

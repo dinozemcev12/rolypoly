@@ -7,8 +7,9 @@ from app.api.deps import get_current_user, RequireAdmin
 from app.models.user import User
 from app.models.game import Game
 from app.models.game_member import GameMember
-from app.schemas.user import UserRead, UserUpdate, UserOut
+from app.schemas.user import UserRead, UserUpdate, UserOut, ChangePassword
 from app.schemas.game import GameRead, GameMemberRead
+from app.core.security import get_password_hash, verify_password
 
 router = APIRouter()
 
@@ -24,17 +25,36 @@ def update_user_me(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    if user_in.username is not None:
+        # Check uniqueness
+        existing = db.query(User).filter(User.username == user_in.username, User.id != current_user.id).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Имя пользователя уже занято")
+        current_user.username = user_in.username
     if user_in.full_name is not None:
         current_user.full_name = user_in.full_name
     if user_in.avatar_url is not None:
         current_user.avatar_url = user_in.avatar_url
     if user_in.password is not None:
-        from app.core.security import get_password_hash
         current_user.hashed_password = get_password_hash(user_in.password)
     db.add(current_user)
     db.commit()
     db.refresh(current_user)
     return current_user
+
+
+@router.post("/me/change-password")
+def change_password(
+    data: ChangePassword,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not verify_password(data.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Неверный текущий пароль")
+    current_user.hashed_password = get_password_hash(data.new_password)
+    db.add(current_user)
+    db.commit()
+    return {"message": "Пароль успешно изменён"}
 
 
 @router.get("/", response_model=List[UserOut])

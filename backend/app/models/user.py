@@ -25,9 +25,9 @@ class User(BaseModel, Base):
     game_members = relationship("GameMember", back_populates="user", cascade="all, delete-orphan")
     owned_countries = relationship("Country", back_populates="owner_user", foreign_keys="Country.owner_user_id")
     sent_orders = relationship("Order", back_populates="sender_user", foreign_keys="Order.sender_user_id")
-    created_transactions = relationship("Transaction", back_populates="created_by_user")
+    created_transactions = relationship("Transaction", back_populates="created_by_user", foreign_keys="Transaction.created_by_user_id")
     created_events = relationship("Event", back_populates="created_by_user")
-    created_games = relationship("Game", back_populates="created_by_user")
+    created_games = relationship("Game", back_populates="created_by", foreign_keys="Game.created_by_id")
     history_logs = relationship("HistoryLog", back_populates="user")
 
     def __repr__(self) -> str:

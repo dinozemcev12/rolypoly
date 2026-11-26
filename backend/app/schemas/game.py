@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 
@@ -35,6 +35,8 @@ class GameUpdate(BaseModel):
 
 
 class GameRead(GameBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     status: str
     current_month: Optional[str] = None
@@ -43,19 +45,15 @@ class GameRead(GameBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-
 
 class GameMemberRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     game_id: int
     user_id: int
-    username: str
-    email: str
+    username: Optional[str] = None
+    email: Optional[str] = None
     role_in_game: str
     is_active: bool
     joined_at: datetime
-
-    class Config:
-        from_attributes = True

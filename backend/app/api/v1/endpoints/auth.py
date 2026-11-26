@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Form
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
 
@@ -44,10 +45,10 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=Token)
-def login(form_data: dict, db: Session = Depends(get_db)):
+def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     """Вход: возвращает access и refresh токены."""
-    username = form_data.get("username")
-    password = form_data.get("password")
+    username = form_data.username
+    password = form_data.password
     if not username or not password:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

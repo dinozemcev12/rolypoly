@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.api.deps import get_current_user, check_game_access, get_game_or_404
 from app.models.history_log import HistoryLog
+from app.models.user import User
 from app.schemas.history_log import HistoryLogRead
 
 router = APIRouter()
@@ -51,7 +52,7 @@ def add_history_entry(
         related_object_type=related_object_type,
         related_object_id=related_object_id,
         turn_number=turn_number,
-        metadata=metadata,
+        log_metadata=metadata,
     )
     db.add(entry)
     db.commit()

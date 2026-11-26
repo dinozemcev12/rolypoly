@@ -1,4 +1,5 @@
 from typing import List, Optional
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -6,7 +7,9 @@ from app.database.session import get_db
 from app.api.deps import get_current_user, check_game_access, check_game_gm_access, get_game_or_404
 from app.models.transaction import Transaction
 from app.models.country import Country
+from app.models.user import User
 from app.schemas.transaction import TransactionCreate, TransactionRead
+from app.services.history_service import log_history
 
 router = APIRouter()
 
@@ -21,30 +24,35 @@ def create_transaction(
     country = db.query(Country).filter(Country.id == tx_in.country_id).first()
     if not country:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Государство не найдено")
-    check_game_access(db, country.game_id, current_user)
-    if current_user.role not in ("admin", "gm"):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Только ведущий может изменять казну",
-        )
+    game = check_game_gm_access(db, country.game_id, current_user)
     tx = Transaction(
         game_id=country.game_id,
         country_id=tx_in.country_id,
         amount=tx_in.amount,
         type=tx_in.type,
         reason=tx_in.reason,
-        date=tx_in.date,
+        date=tx_in.date or datetime.now(timezone.utc),
         status=tx_in.status or "confirmed",
         created_by_user_id=current_user.id,
     )
     db.add(tx)
-    db.commit()
-    db.refresh(tx)
+    db.flush()
 
     if tx.status == "confirmed":
         country.treasury = (country.treasury or 0) + tx.amount
         db.add(country)
-        db.commit()
+
+    log_history(
+        db,
+        game_id=country.game_id,
+        user_id=current_user.id,
+        action_type="treasury_changed",
+        description=f"Финансовая операция ({tx.type}) для «{country.name}»: {tx.amount:+d} ({tx.reason})",
+        related_object_type="country",
+        related_object_id=country.id,
+        turn_number=game.current_turn_number,
+    )
+    db.commit()
     db.refresh(tx)
     return tx
 

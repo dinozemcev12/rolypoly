@@ -1,9 +1,11 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, Dict, Any
 from datetime import datetime
 
 
 class HistoryLogRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     game_id: int
     user_id: Optional[int] = None
@@ -12,8 +14,5 @@ class HistoryLogRead(BaseModel):
     related_object_type: Optional[str] = None
     related_object_id: Optional[int] = None
     turn_number: Optional[int] = None
-    metadata: Optional[Dict[str, Any]] = None
+    log_metadata: Optional[Dict[str, Any]] = None
     created_at: datetime
-
-    class Config:
-        from_attributes = True

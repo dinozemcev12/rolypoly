@@ -1,9 +1,11 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from datetime import datetime
 
 
 class NotificationRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     game_id: int
     user_id: int
@@ -14,6 +16,3 @@ class NotificationRead(BaseModel):
     read_at: Optional[datetime] = None
     link_url: Optional[str] = None
     created_at: datetime
-
-    class Config:
-        from_attributes = True

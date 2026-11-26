@@ -11,6 +11,7 @@ from app.api.deps import (
 )
 from app.models.country import Country
 from app.models.game_member import GameMember
+from app.models.user import User
 from app.schemas.country import CountryCreate, CountryRead, CountryUpdate
 
 router = APIRouter()

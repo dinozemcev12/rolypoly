@@ -29,7 +29,7 @@ class HistoryLog(BaseModel, Base):
     related_object_type = Column(String(100), nullable=True)  # country | territory | order | ...
     related_object_id = Column(Integer, nullable=True)
     turn_number = Column(Integer, nullable=True)
-    metadata = Column(JSON, nullable=True)  # дополнительные данные изменения
+    log_metadata = Column(JSON, nullable=True)  # дополнительные данные изменения
 
     game = relationship("Game", back_populates="history_logs")
     user = relationship("User", back_populates="history_logs")

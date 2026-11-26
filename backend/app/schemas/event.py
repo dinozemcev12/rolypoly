@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 
@@ -15,14 +15,14 @@ class EventBase(BaseModel):
 
 
 class EventCreate(EventBase):
-    pass
+    game_id: int
+    event_date: Optional[datetime] = None
 
 
 class EventRead(EventBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     game_id: int
     created_by_user_id: int
     created_at: datetime
-
-    class Config:
-        from_attributes = True

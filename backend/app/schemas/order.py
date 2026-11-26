@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 
@@ -31,6 +31,8 @@ class OrderDecision(BaseModel):
 
 
 class OrderRead(OrderBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     game_id: int
     country_id: int
@@ -43,6 +45,3 @@ class OrderRead(OrderBase):
     result: Optional[str] = None
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True

@@ -6,6 +6,7 @@ from sqlalchemy import (
     Text,
     JSON,
     DateTime,
+    Boolean,
     CheckConstraint,
 )
 from sqlalchemy.orm import relationship

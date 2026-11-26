@@ -1,9 +1,15 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List, Optional
 import os
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+    )
+
     # --- Приложение ---
     APP_NAME: str = "RolyPoly"
     APP_ENV: str = "development"
@@ -44,11 +50,6 @@ class Settings(BaseSettings):
 
     # --- WebSocket ---
     WS_PING_INTERVAL_SECONDS: int = 30
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = True
 
 
 settings = Settings()

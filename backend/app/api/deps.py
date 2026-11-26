@@ -23,7 +23,7 @@ def get_db_session() -> Generator[Session, None, None]:
 
 
 def get_current_user(
-    db: Session = Depends(get_db_session),
+    db: Session = Depends(get_db),
     token: str = Depends(oauth2_scheme),
 ) -> User:
     credentials_exception = HTTPException(
